@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Скачать архив</title>
+  <style>
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f8fafc}
+    .card{width:min(560px,92vw);background:#fff;padding:22px;border:1px solid #e5e7eb;border-radius:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08)}
+    h1{margin:0 0 8px;font-size:20px}
+    p{margin:0 0 14px;color:#475569;line-height:1.4}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:12px 16px;border-radius:12px;border:1px solid #0f172a;
+      background:#0f172a;color:#fff;text-decoration:none;font-weight:600;
+      width:100%;box-sizing:border-box;cursor:pointer
+    }
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .muted{font-size:12px;color:#6b7280;margin-top:10px}
+    .err{color:#b91c1c;font-size:13px;margin-top:10px;display:none}
+    code{background:#f1f5f9;padding:2px 6px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Оплата прошла ✅</h1>
+    <p>Спасибо! Нажми кнопку ниже, чтобы скачать архив.</p>
+
+    <button class="btn" id="dlBtn">Скачать архив</button>
+    <div class="err" id="err"></div>
+
+    <div class="muted">
+      Токен: <code id="tok">—</code><br/>
+      Если кнопка не работает — обнови страницу или вернись к оплате.
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const token = params.get("token") || "";
+    document.getElementById("tok").textContent = token || "нет";
+
+    const err = (msg) => {
+      const el = document.getElementById("err");
+      el.style.display = "block";
+      el.textContent = msg;
+    };
+
+    const btn = document.getElementById("dlBtn");
+    btn.addEventListener("click", async () => {
+      if (!token) return err("Нет токена. Вернись на страницу оплаты и оплати заново.");
+
+      // MVP: просто скачиваем статический файл
+      // В проде: нужно проверять токен на сервере и отдавать файл только если токен валидный.
+      const url = `/files/archive.zip?token=${encodeURIComponent(token)}`;
+
+      // попробуем открыть скачивание
+      window.location.href = url;
+    });
+  </script>
+</body>
+</html>
