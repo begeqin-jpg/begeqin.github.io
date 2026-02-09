@@ -90,13 +90,13 @@
           height: 55
         },
 
-        createOrder: async () => {
-          clearErr();
-          const amount = getAmount();
-          if (!amount) {
-            showErr("Введите корректную сумму (1–5000 USD)");
-            throw new Error("bad amount");
-          }
+        createSubscription: async (data, actions) => {
+           clearErr();
+           return actions.subscription.create({
+             plan_id: "PLAN_ID_СЮДА"
+          });
+        },
+
 
           const r = await fetch("/api/create-order", {
             method: "POST",
