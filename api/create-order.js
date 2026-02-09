@@ -53,12 +53,17 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         intent: "CAPTURE",
+        application_context: {
+          brand_name: "BEGEQIN",
+          user_action: "PAY_NOW" // 👈 КЛЮЧЕВО: это ОПЛАТА, а не донат
+        },
         purchase_units: [
           {
             amount: {
               currency_code: "USD",
               value: n.toFixed(2),
             },
+            description: "Доступ к архиву", // 👈 ОПИСАНИЕ УСЛУГИ
           },
         ],
       }),
