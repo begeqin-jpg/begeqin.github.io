@@ -70,6 +70,7 @@ function switchMode(m){
 async function loadSdk(){
   if (paypalLoaded) return;
   const cfg = await fetch("/api/config").then(r=>r.json());
+  console.log("PAYPAL CLIENT ID FROM /api/config =", cfg.paypalClientId);
   const s = document.createElement("script");
   s.src = `https://www.paypal.com/sdk/js?client-id=${cfg.paypalClientId}&currency=USD&vault=true&intent=subscription`;
   s.onload = () => { paypalLoaded = true; renderButtons(); };
