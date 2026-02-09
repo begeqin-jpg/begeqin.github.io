@@ -72,7 +72,7 @@
       // берём client-id с твоего же Vercel API
       const cfg = await fetch("/api/config").then(r => r.json());
       const s = document.createElement("script");
-      s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(cfg.paypalClientId)}&currency=USD&intent=capture&components=buttons`;
+      s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(cfg.paypalClientId)}&currency=USD&intent=capture&components=buttons&disable-funding=card,paylater,venmo`;
       s.onload = initButtons;
       s.onerror = () => showErr("Не удалось загрузить PayPal SDK");
       document.head.appendChild(s);
