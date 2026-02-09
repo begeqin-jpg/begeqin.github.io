@@ -15,101 +15,258 @@
     input, textarea{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #d1d5db;border-radius:12px;
       font-size:16px;outline:none}
     textarea{min-height:90px;resize:vertical}
+    input:focus, textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
     .row{display:flex;gap:12px}
     .row > div{flex:1}
-    button.mode{
-      width:100%;padding:12px;border-radius:12px;border:1px solid #d1d5db;
-      font-size:14px;cursor:pointer
+
+    .toggle{display:flex;gap:10px;margin-top:8px}
+    .toggle button{
+      flex:1;padding:12px;border:1px solid #d1d5db;border-radius:12px;
+      background:#fff;color:#111827;font-size:14px;cursor:pointer
     }
-    button.active{background:#111827;color:#fff}
-    button.inactive{background:#fff;color:#111827}
+    .toggle button.active{background:#111827;color:#fff;border-color:#111827}
+
+    .hint{font-size:12px;color:#6b7280;margin-top:10px}
     .err{margin-top:10px;color:#b91c1c;font-size:13px;display:none}
     #paypal-button-container{margin-top:14px}
+    .subhint{font-size:12px;color:#6b7280;margin-top:8px}
   </style>
 </head>
 
 <body>
-<div class="card">
-  <h1>Оплата архива</h1>
-  <p class="to">Получить доступ к архиву ❤️</p>
+  <div class="card">
+    <h1>Оплата архива</h1>
+    <p class="to" id="toText">Получить доступ к архиву ❤️</p>
 
-  <label>Режим оплаты</label>
-  <div class="row">
-    <div><button id="modeOne" class="mode active">One-time</button></div>
-    <div><button id="modeMonthly" class="mode inactive">Monthly</button></div>
+    <label>Режим оплаты</label>
+    <div class="toggle">
+      <button id="modeOne" class="active" type="button">One-time</button>
+      <button id="modeMonthly" type="button">Monthly</button>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div>
+        <label>Сумма (USD)</label>
+        <input id="amount" inputmode="decimal" autocomplete="off" value="10.00" />
+      </div>
+      <div>
+        <label>Ваше имя (опционально)</label>
+        <input id="fromName" autocomplete="off" placeholder="Anon" />
+      </div>
+    </div>
+
+    <label>Комментарий к заказу (опционально)</label>
+    <textarea id="message" placeholder="Например: Оплата архива"></textarea>
+
+    <div id="paypal-button-container"></div>
+    <div class="err" id="err"></div>
+
+    <div class="subhint" id="monthlyNote" style="display:none">
+      Monthly — это подписка PayPal. Если у PayPal ещё не включены pre-approved payments для аккаунта, PayPal может показать ошибку.
+    </div>
+
+    <div class="hint">Важно: открывай эту страницу на домене Vercel, чтобы API работало.</div>
   </div>
 
-  <label>Сумма (USD)</label>
-  <input id="amount" value="100.00"/>
+  <script>
+    // === НАСТРОЙКИ ===
+    const PLAN_ID = "P-8R141902FA609240BNGFDNRY"; // <-- твой план подписки (Monthly)
+    const CURRENCY = "USD";
 
-  <label>Комментарий</label>
-  <textarea id="message"></textarea>
+    // === UI ===
+    let mode = "one"; // "one" | "monthly"
+    const errEl = document.getElementById("err");
+    const btnOne = document.getElementById("modeOne");
+    const btnMonthly = document.getElementById("modeMonthly");
+    const amountEl = document.getElementById("amount");
+    const monthlyNote = document.getElementById("monthlyNote");
 
-  <div id="paypal-button-container"></div>
-  <div class="err" id="err"></div>
-</div>
+    function showErr(msg){
+      errEl.style.display = "block";
+      errEl.textContent = msg;
+    }
+    function clearErr(){
+      errEl.style.display = "none";
+      errEl.textContent = "";
+    }
 
-<script>
-let mode = "one"; // one | monthly
-let paypalLoaded = false;
+    function setMode(next){
+      mode = next;
+      btnOne.classList.toggle("active", mode === "one");
+      btnMonthly.classList.toggle("active", mode === "monthly");
 
-function showErr(m){err.style.display="block";err.textContent=m}
-function clearErr(){err.style.display="none";err.textContent=""}
+      // В monthly сумма фиксирована планом → поле суммы блокируем
+      amountEl.disabled = (mode === "monthly");
+      monthlyNote.style.display = (mode === "monthly") ? "block" : "none";
 
-modeOne.onclick = () => switchMode("one");
-modeMonthly.onclick = () => switchMode("monthly");
+      renderButtons();
+    }
 
-function switchMode(m){
-  mode = m;
-  modeOne.className = "mode " + (m==="one"?"active":"inactive");
-  modeMonthly.className = "mode " + (m==="monthly"?"active":"inactive");
-  amount.disabled = (m==="monthly");
-  renderButtons();
-}
+    btnOne.addEventListener("click", () => setMode("one"));
+    btnMonthly.addEventListener("click", () => setMode("monthly"));
 
-async function loadSdk(){
-  if (paypalLoaded) return;
-  const cfg = await fetch("/api/config").then(r=>r.json());
-  console.log("PAYPAL CLIENT ID FROM /api/config =", cfg.paypalClientId);
-  const s = document.createElement("script");
-  s.src = `https://www.paypal.com/sdk/js?client-id=${cfg.paypalClientId}&currency=USD&vault=true&intent=subscription`;
-  s.onload = () => { paypalLoaded = true; renderButtons(); };
-  document.head.appendChild(s);
-}
+    function getAmount() {
+      const raw = (amountEl.value || "").trim();
+      const normalized = raw.replace(",", ".").replace(/[^0-9.]/g, "");
+      const n = Number(normalized);
+      if (!Number.isFinite(n) || n <= 0) return null;
+      if (n < 1 || n > 5000) return null;
+      return n.toFixed(2);
+    }
 
-function renderButtons(){
-  if (!window.paypal) return;
-  document.getElementById("paypal-button-container").innerHTML = "";
+    // === PAYPAL SDK LOADING (2 namespaces) ===
+    let paypalCapture = null; // window.paypalCapture
+    let paypalSub = null;     // window.paypalSub
+    let cfg = null;
 
-  paypal.Buttons({
-    createOrder: mode==="one" ? async (data, actions) => {
-      const amountVal = amount.value;
-      const r = await fetch("/api/create-order",{
-        method:"POST",
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({amount:amountVal})
+    async function loadConfig(){
+      if (cfg) return cfg;
+      cfg = await fetch("/api/config").then(r => r.json());
+      return cfg;
+    }
+
+    function loadPayPalScript({ clientId, namespace, params }) {
+      return new Promise((resolve, reject) => {
+        // Если уже есть в window — ок
+        if (window[namespace]) return resolve(window[namespace]);
+
+        const s = document.createElement("script");
+        const qp = new URLSearchParams(params);
+
+        // ВАЖНО: data-namespace позволяет грузить 2 SDK параллельно
+        s.setAttribute("data-namespace", namespace);
+        s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&${qp.toString()}`;
+        s.onload = () => resolve(window[namespace]);
+        s.onerror = () => reject(new Error("Не удалось загрузить PayPal SDK: " + namespace));
+        document.head.appendChild(s);
       });
-      const d = await r.json();
-      return d.orderId;
-    } : undefined,
+    }
 
-    createSubscription: mode==="monthly" ? (data, actions) => {
-      return actions.subscription.create({
-        plan_id: "P-8R141902FA609240BNGFDNRY"
+    async function ensureSdks(){
+      const c = await loadConfig();
+      const clientId = c.paypalClientId;
+
+      // 1) One-time SDK (capture)
+      paypalCapture = await loadPayPalScript({
+        clientId,
+        namespace: "paypalCapture",
+        params: {
+          currency: CURRENCY,
+          intent: "capture",
+          components: "buttons",
+          // можешь отключить что не нужно:
+          "disable-funding": "paylater,venmo" // card можно НЕ отключать, чтобы была оплата картой
+        }
       });
-    } : undefined,
 
-    onApprove: (data) => {
-      alert(mode==="monthly"
-        ? "Подписка активирована ✅"
-        : "Оплата прошла ✅");
-    },
+      // 2) Monthly SDK (subscription)
+      paypalSub = await loadPayPalScript({
+        clientId,
+        namespace: "paypalSub",
+        params: {
+          currency: CURRENCY,
+          intent: "subscription",
+          vault: "true",
+          components: "buttons",
+          "disable-funding": "paylater,venmo"
+        }
+      });
+    }
 
-    onError: err => showErr("PayPal ошибка")
-  }).render("#paypal-button-container");
-}
+    // === RENDER BUTTONS ===
+    function clearButtons(){
+      document.getElementById("paypal-button-container").innerHTML = "";
+    }
 
-loadSdk();
-</script>
+    function renderButtons(){
+      clearErr();
+      clearButtons();
+
+      if (mode === "one") {
+        if (!paypalCapture) return showErr("PayPal SDK (one-time) не загрузился");
+        paypalCapture.Buttons({
+          fundingSource: paypalCapture.FUNDING.PAYPAL,
+          style: { layout: "vertical", label: "paypal", shape: "rect", height: 55 },
+
+          createOrder: async () => {
+            clearErr();
+            const amount = getAmount();
+            if (!amount) {
+              showErr("Введите корректную сумму (1–5000 USD)");
+              throw new Error("bad amount");
+            }
+
+            const r = await fetch("/api/create-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ amount })
+            });
+
+            const t = await r.text();
+            if (!r.ok) { showErr("create-order: " + t); throw new Error(t); }
+            const data = JSON.parse(t);
+            return data.orderId;
+          },
+
+          onApprove: async (data) => {
+            clearErr();
+            const r = await fetch("/api/capture-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: data.orderID })
+            });
+
+            const t = await r.text();
+            if (!r.ok) { showErr("capture-order: " + t); return; }
+
+            const res = JSON.parse(t);
+            if (res.downloadUrl) window.location.href = res.downloadUrl;
+            else alert("Оплата прошла ✅");
+          },
+
+          onError: (e) => {
+            console.error(e);
+            showErr("PayPal ошибка (One-time). Открой консоль (F12).");
+          }
+        }).render("#paypal-button-container");
+
+        return;
+      }
+
+      // Monthly
+      if (!paypalSub) return showErr("PayPal SDK (monthly) не загрузился");
+
+      paypalSub.Buttons({
+        fundingSource: paypalSub.FUNDING.PAYPAL,
+        style: { layout: "vertical", label: "paypal", shape: "rect", height: 55 },
+
+        createSubscription: (data, actions) => {
+          clearErr();
+          return actions.subscription.create({ plan_id: PLAN_ID });
+        },
+
+        onApprove: (data) => {
+          // data.subscriptionID — можно отправить на сервер, если захочешь хранить подписку
+          alert("Подписка создана ✅\nID: " + data.subscriptionID);
+        },
+
+        onError: (e) => {
+          console.error(e);
+          showErr("PayPal ошибка (Monthly). Если текст про pre-approved payments — это настройки аккаунта PayPal.");
+        }
+      }).render("#paypal-button-container");
+    }
+
+    // === INIT ===
+    (async function init(){
+      try{
+        await ensureSdks();
+        setMode("one"); // стартуем с one-time, чтобы сразу работало
+      }catch(e){
+        console.error(e);
+        showErr(e.message || "Ошибка загрузки PayPal");
+      }
+    })();
+  </script>
 </body>
 </html>
