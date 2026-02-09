@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 async function getAccessToken() {
   const clientId = process.env.PAYPAL_CLIENT_ID;
   const secret = process.env.PAYPAL_SECRET;
@@ -54,10 +56,16 @@ export default async function handler(req, res) {
       return res.status(500).send(d?.message || JSON.stringify(d));
     }
 
-    const captureId =
-      d?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+    const captureId = d?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
 
-    return res.status(200).json({ captureId });
+    // 1) выдаём токен на скачивание (MVP)
+    const token = crypto.randomUUID();
+
+    // 2) возвращаем ссылку, куда редиректить пользователя после оплаты
+    return res.status(200).json({
+      captureId,
+      downloadUrl: `/download.html?token=${token}`, // пока отдаём страницу
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).send("Server error");
