@@ -25,7 +25,7 @@
 </head>
 <body>
   <div class="card">
-    <h1>Донат</h1>
+    <h1>Оплата архива</h1>
     <p class="to" id="toText">Получить доступ к архиву ❤️</p>
 
     <div class="row">
@@ -40,7 +40,7 @@
     </div>
 
     <label>Комментарий к заказу (опционально)</label>
-    <textarea id="message" placeholder="Например: Спасибо за контент!"></textarea>
+    <textarea id="message" placeholder="Например: Оплата архива"></textarea>
 
     <div id="paypal-button-container"></div>
     <div class="err" id="err"></div>
@@ -69,7 +69,6 @@
     }
 
     async function loadPayPalSdk() {
-      // берём client-id с твоего же Vercel API
       const cfg = await fetch("/api/config").then(r => r.json());
       const s = document.createElement("script");
       s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(cfg.paypalClientId)}&currency=USD&intent=capture&components=buttons&disable-funding=card,paylater,venmo`;
@@ -82,18 +81,22 @@
       if (!window.paypal) return showErr("PayPal SDK не инициализировался");
 
       paypal.Buttons({
-    style: {
-      layout: "vertical",
-      label: "paypal",   // ВАЖНО
-      color: "white",    // ВАЖНО
-      shape: "rect",
-      height: 55
-    },
+        fundingSource: paypal.FUNDING.PAYPAL,
+        style: {
+          layout: "vertical",
+          label: "paypal",
+          color: "white",
+          shape: "rect",
+          height: 55
+        },
 
         createOrder: async () => {
           clearErr();
           const amount = getAmount();
-          if (!amount) { showErr("Введите корректную сумму (1–5000 USD)"); throw new Error("bad amount"); }
+          if (!amount) {
+            showErr("Введите корректную сумму (1–5000 USD)");
+            throw new Error("bad amount");
+          }
 
           const r = await fetch("/api/create-order", {
             method: "POST",
@@ -102,7 +105,10 @@
           });
 
           const t = await r.text();
-          if (!r.ok) { showErr("create-order: " + t); throw new Error(t); }
+          if (!r.ok) {
+            showErr("create-order: " + t);
+            throw new Error(t);
+          }
 
           const data = JSON.parse(t);
           return data.orderId;
@@ -117,10 +123,17 @@
           });
 
           const t = await r.text();
-          if (!r.ok) { showErr("capture-order: " + t); return; }
+          if (!r.ok) {
+            showErr("capture-order: " + t);
+            return;
+          }
 
           const res = JSON.parse(t);
-          alert("Спасибо! Оплата прошла ✅\nCapture: " + (res.captureId || "OK"));
+          if (res.downloadUrl) {
+            window.location.href = res.downloadUrl;
+          } else {
+            alert("Оплата прошла ✅");
+          }
         },
 
         onError: (err) => {
