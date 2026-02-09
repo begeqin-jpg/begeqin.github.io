@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Донат</title>
+  <style>
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f8fafc}
+    .card{width:min(560px,92vw);background:#fff;padding:22px;border:1px solid #e5e7eb;border-radius:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08)}
+    h1{margin:0 0 8px;font-size:20px}
+    .to{color:#475569;margin:0 0 16px}
+    label{display:block;font-size:12px;color:#64748b;margin:10px 0 6px}
+    input, textarea{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #d1d5db;border-radius:12px;
+      font-size:16px;outline:none}
+    textarea{min-height:90px;resize:vertical}
+    input:focus, textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+    .row{display:flex;gap:12px}
+    .row > div{flex:1}
+    .hint{font-size:12px;color:#6b7280;margin-top:10px}
+    .err{margin-top:10px;color:#b91c1c;font-size:13px;display:none}
+    #paypal-button-container{margin-top:14px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Донат</h1>
+    <p class="to" id="toText">Поддержать автора ❤️</p>
+
+    <div class="row">
+      <div>
+        <label>Сумма (USD)</label>
+        <input id="amount" inputmode="decimal" autocomplete="off" value="10.00" />
+      </div>
+      <div>
+        <label>Ваше имя (опционально)</label>
+        <input id="fromName" autocomplete="off" placeholder="Anon" />
+      </div>
+    </div>
+
+    <label>Сообщение (опционально)</label>
+    <textarea id="message" placeholder="Например: Спасибо за контент!"></textarea>
+
+    <div id="paypal-button-container"></div>
+    <div class="err" id="err"></div>
+
+    <div class="hint">Важно: открывай эту страницу на домене Vercel, чтобы API работало.</div>
+  </div>
+
+  <script>
+    function showErr(msg){
+      const el = document.getElementById('err');
+      el.style.display = 'block';
+      el.textContent = msg;
+    }
+    function clearErr(){
+      const el = document.getElementById('err');
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+    function getAmount() {
+      const raw = (document.getElementById('amount').value || "").trim();
+      const normalized = raw.replace(",", ".").replace(/[^0-9.]/g, "");
+      const n = Number(normalized);
+      if (!Number.isFinite(n) || n <= 0) return null;
+      if (n < 1 || n > 5000) return null;
+      return n.toFixed(2);
+    }
+
+    async function loadPayPalSdk() {
+      // берём client-id с твоего же Vercel API
+      const cfg = await fetch("/api/config").then(r => r.json());
+      const s = document.createElement("script");
+      s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(cfg.paypalClientId)}&currency=USD&intent=capture&components=buttons`;
+      s.onload = initButtons;
+      s.onerror = () => showErr("Не удалось загрузить PayPal SDK");
+      document.head.appendChild(s);
+    }
+
+    function initButtons() {
+      if (!window.paypal) return showErr("PayPal SDK не инициализировался");
+
+      paypal.Buttons({
+        style: { layout:'vertical', label:'donate', shape:'rect', height:44 },
+
+        createOrder: async () => {
+          clearErr();
+          const amount = getAmount();
+          if (!amount) { showErr("Введите корректную сумму (1–5000 USD)"); throw new Error("bad amount"); }
+
+          const r = await fetch("/api/create-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount })
+          });
+
+          const t = await r.text();
+          if (!r.ok) { showErr("create-order: " + t); throw new Error(t); }
+
+          const data = JSON.parse(t);
+          return data.orderId;
+        },
+
+        onApprove: async (data) => {
+          clearErr();
+          const r = await fetch("/api/capture-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: data.orderID })
+          });
+
+          const t = await r.text();
+          if (!r.ok) { showErr("capture-order: " + t); return; }
+
+          const res = JSON.parse(t);
+          alert("Спасибо! Оплата прошла ✅\nCapture: " + (res.captureId || "OK"));
+        },
+
+        onError: (err) => {
+          console.error(err);
+          showErr("PayPal ошибка. Открой консоль (F12).");
+        }
+      }).render("#paypal-button-container");
+    }
+
+    loadPayPalSdk();
+  </script>
+</body>
+</html>
