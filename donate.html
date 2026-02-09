@@ -82,7 +82,13 @@
       if (!window.paypal) return showErr("PayPal SDK не инициализировался");
 
       paypal.Buttons({
-        style: { layout:'vertical', label:'donate', shape:'rect', height:44 },
+    style: {
+      layout: "vertical",
+      label: "paypal",   // ВАЖНО
+      color: "white",    // ВАЖНО
+      shape: "rect",
+      height: 55
+    },
 
         createOrder: async () => {
           clearErr();
