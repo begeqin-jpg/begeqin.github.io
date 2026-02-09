@@ -27,7 +27,7 @@
     <h1>Оплата через PayPal</h1>
 
     <div class="row">
-      <input id="amount" type="number" min="1" step="0.01" value="10.00" placeholder="Сумма (USD)" />
+      <input id="amount" inputmode="decimal" autocomplete="off" value="10.00" placeholder="Сумма (USD)" />
     </div>
 
     <div id="paypal-button-container"></div>
@@ -39,8 +39,9 @@
 
   <script>
     function getAmount() {
-      const v = document.getElementById('amount').value;
-      const n = Number(v);
+      const raw = (document.getElementById('amount').value || "").trim();
+      const normalized = raw.replace(",", ".").replace(/[^0-9.]/g, "");
+      const n = Number(normalized);
       if (!Number.isFinite(n) || n <= 0) return null;
       return n.toFixed(2);
     }
