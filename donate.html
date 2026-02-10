@@ -1,79 +1,36 @@
-<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Оплата архива</title>
+<!-- ВСТАВЬ В НУЖНОЕ МЕСТО НА СТРАНИЦЕ -->
+<a class="donate-btn"
+   href="https://paypal.me/ТВОЙНИК?country.x=US&locale.x=ru_RU"
+   target="_blank" rel="noopener">
+  💙 Поддержать (PayPal)
+</a>
 
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: #f8fafc;
-    }
+<style>
+  .donate-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
 
-    .card {
-      width: min(520px, 92vw);
-      background: #fff;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.08);
-      border: 1px solid #e5e7eb;
-    }
+    padding:14px 22px;
+    border-radius:14px;
 
-    h1 {
-      margin: 0 0 8px;
-      font-size: 22px;
-    }
+    font:700 16px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    text-decoration:none;
+    color:#fff;
 
-    .sub {
-      color: #475569;
-      margin-bottom: 20px;
-    }
+    background:linear-gradient(135deg,#00a8ff,#005cff);
+    box-shadow:0 10px 30px rgba(0,92,255,.25);
 
-    #paypal-button-container-P-9AH50584TF252271ENGFYVPI {
-      margin-top: 20px;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="card">
-    <h1>Оплата архива</h1>
-    <div class="sub">Monthly подписка PayPal ❤️</div>
-
-    <!-- PAYPAL BUTTON (СТРОГО 1 В 1) -->
-    <div id="paypal-button-container-P-9AH50584TF252271ENGFYVPI"></div>
-
-    <script
-      src="https://www.paypal.com/sdk/js?client-id=AT772idX46ch1nwFcslWB7TPu-LpsAJmit-QC3cNx5H-Z3rXyuFFdOorodY1vQN6U3p5dr4x9wIaSqPs&vault=true&intent=subscription"
-      data-sdk-integration-source="button-factory">
-    </script>
-
-    <script>
-      paypal.Buttons({
-        style: {
-          shape: 'rect',
-          color: 'white',
-          layout: 'horizontal',
-          label: 'paypal'
-        },
-        createSubscription: function (data, actions) {
-          return actions.subscription.create({
-            plan_id: 'P-9AH50584TF252271ENGFYVPI'
-          });
-        },
-        onApprove: function (data) {
-          alert('Subscription ID: ' + data.subscriptionID);
-        }
-      }).render('#paypal-button-container-P-9AH50584TF252271ENGFYVPI');
-    </script>
-    <!-- /PAYPAL BUTTON -->
-
-  </div>
-</body>
-</html>
+    transform:translateY(0);
+    transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  .donate-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 14px 36px rgba(0,92,255,.32);
+    filter:saturate(1.05);
+  }
+  .donate-btn:active{
+    transform:translateY(0);
+  }
+</style>
