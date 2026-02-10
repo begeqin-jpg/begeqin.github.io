@@ -62,7 +62,8 @@
     <div class="err" id="err"></div>
 
     <div class="subhint" id="monthlyNote" style="display:none">
-      Monthly — это подписка PayPal. Если у PayPal ещё не включены pre-approved payments для аккаунта, PayPal может показать ошибку.
+      Monthly — это подписка PayPal. Если у PayPal ещё не включены pre-approved payments для аккаунта,
+      PayPal может показать ошибку.
     </div>
 
     <div class="hint">Важно: открывай эту страницу на домене Vercel, чтобы API работало.</div>
@@ -182,8 +183,11 @@
       clearErr();
       clearButtons();
 
+      // защитка: пока SDK не загрузился — не рендерим
+      if (mode === "one" && !paypalCapture) return;
+      if (mode === "monthly" && !paypalSub) return;
+
       if (mode === "one") {
-        if (!paypalCapture) return showErr("PayPal SDK (one-time) не загрузился");
         paypalCapture.Buttons({
           fundingSource: paypalCapture.FUNDING.PAYPAL,
           style: { layout: "vertical", label: "paypal", shape: "rect", height: 55 },
@@ -234,8 +238,6 @@
       }
 
       // Monthly
-      if (!paypalSub) return showErr("PayPal SDK (monthly) не загрузился");
-
       paypalSub.Buttons({
         fundingSource: paypalSub.FUNDING.PAYPAL,
         style: { layout: "vertical", label: "paypal", shape: "rect", height: 55 },
@@ -252,7 +254,7 @@
 
         onError: (e) => {
           console.error(e);
-          showErr("PayPal ошибка (Monthly). Если текст про pre-approved payments — это настройки аккаунта PayPal.");
+          showErr("PayPal ошибка (Monthly). Открой консоль (F12) и пришли текст ошибки.");
         }
       }).render("#paypal-button-container");
     }
@@ -261,7 +263,12 @@
     (async function init(){
       try{
         await ensureSdks();
-        setMode("one"); // стартуем с one-time, чтобы сразу работало
+
+        // стартуем с one-time (чтобы сразу работало)
+        setMode("one");
+
+        // На всякий случай: ререндер после загрузки
+        renderButtons();
       }catch(e){
         console.error(e);
         showErr(e.message || "Ошибка загрузки PayPal");
