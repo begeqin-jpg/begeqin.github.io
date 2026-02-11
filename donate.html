@@ -1,91 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link
-            rel="stylesheet"
-            type="text/css"
-            href="https://www.paypalobjects.com/webstatic/en_US/developer/docs/css/cardfields.css"
-        />
-        <title>PayPal JS SDK Advanced Integration - Checkout Flow</title>
-        <script
-            src="https://www.paypal.com/sdk/js?client-id=AYOeyCQvilLVKJGjslZfFSi_Nkl7A6OfXNarj5lS55iUcQXMhpp3AypVjAVkS_qvPcO5D415b9SnBFuN&buyer-country=US&currency=USD&components=buttons,card-fields&enable-funding=venmo"
-            data-sdk-integration-source="developer-studio"
-        ></script>
-    </head>
-    <body>
-        <div id="paypal-button-container" class="paypal-button-container"></div>
-        <!-- Containers for Card Fields hosted by PayPal -->
-        <div id="card-form" class="card_container">
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://www.paypalobjects.com/webstatic/en_US/developer/docs/css/cardfields.css"
+    />
+
+    <title>Оплата архива — PayPal / Card</title>
+
+    <!-- PayPal JS SDK: Buttons + Card Fields -->
+    <script
+      src="https://www.paypal.com/sdk/js?client-id=AYOeyCQvilLVKJGjslZfFSi_Nkl7A6OfXNarj5lS55iUcQXMhpp3AypVjAVkS_qvPcO5D415b9SnBFuN&buyer-country=US&currency=USD&components=buttons,card-fields&enable-funding=venmo"
+      data-sdk-integration-source="developer-studio"
+    ></script>
+
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        background: #0b1220;
+        color: #e5e7eb;
+      }
+      .card {
+        width: min(720px, 94vw);
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 18px;
+        padding: 22px;
+        box-shadow: 0 20px 60px rgba(0,0,0,.45);
+      }
+      h1 { margin: 0 0 6px; font-size: 20px; }
+      .sub { opacity: .8; margin-bottom: 14px; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      @media (max-width: 860px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+
+      .box {
+        background: rgba(0,0,0,0.22);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      #paypal-button-container { margin-top: 10px; }
+
+      .card_container input {
+        width: 100%;
+        padding: 10px 12px;
+        margin: 8px 0;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.06);
+        color: #e5e7eb;
+        outline: none;
+      }
+
+      #card-field-submit-button {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.10);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      #result-message { margin-top: 12px; font-size: 14px; opacity: .95; }
+    </style>
+  </head>
+
+  <body>
+    <div class="card">
+      <h1>Оплата архива</h1>
+      <div class="sub">PayPal или карта (Expanded Checkout)</div>
+
+      <div class="grid">
+        <div class="box">
+          <b>PayPal</b>
+          <div id="paypal-button-container" class="paypal-button-container"></div>
+        </div>
+
+        <div class="box">
+          <b>Карта</b>
+
+          <!-- Containers for Card Fields hosted by PayPal -->
+          <div id="card-form" class="card_container">
             <div id="card-name-field-container"></div>
             <div id="card-number-field-container"></div>
             <div id="card-expiry-field-container"></div>
             <div id="card-cvv-field-container"></div>
 
-           
-            <div>
-                <label for="card-billing-address-line-1">Billing Address</label>
-                <input
-                    type="text"
-                    id="card-billing-address-line-1"
-                    name="card-billing-address-line-1"
-                    autocomplete="off"
-                    placeholder="Address line 1"
-                />
-            </div>
-            <div>
-                <input
-                    type="text"
-                    id="card-billing-address-line-2"
-                    name="card-billing-address-line-2"
-                    autocomplete="off"
-                    placeholder="Address line 2"
-                />
-            </div>
-            <div>
-                <input
-                    type="text"
-                    id="card-billing-address-admin-area-line-1"
-                    name="card-billing-address-admin-area-line-1"
-                    autocomplete="off"
-                    placeholder="Admin area line 1"
-                />
-            </div>
-            <div>
-                <input
-                    type="text"
-                    id="card-billing-address-admin-area-line-2"
-                    name="card-billing-address-admin-area-line-2"
-                    autocomplete="off"
-                    placeholder="Admin area line 2"
-                />
-            </div>
-            <div>
-                <input
-                    type="text"
-                    id="card-billing-address-country-code"
-                    name="card-billing-address-country-code"
-                    autocomplete="off"
-                    placeholder="Country code"
-                />
-            </div>
-            <div>
-                <input
-                    type="text"
-                    id="card-billing-address-postal-code"
-                    name="card-billing-address-postal-code"
-                    autocomplete="off"
-                    placeholder="Postal/zip code"
-                />
-            </div>
-           
-            <br /><br />
-            <button id="card-field-submit-button" type="button">
-                Pay now with Card
-            </button>
+            <label for="card-billing-address-line-1">Billing Address</label>
+            <input id="card-billing-address-line-1" autocomplete="off" placeholder="Address line 1" />
+            <input id="card-billing-address-line-2" autocomplete="off" placeholder="Address line 2" />
+            <input id="card-billing-address-admin-area-line-1" autocomplete="off" placeholder="Admin area line 1" />
+            <input id="card-billing-address-admin-area-line-2" autocomplete="off" placeholder="Admin area line 2" />
+            <input id="card-billing-address-country-code" autocomplete="off" placeholder="Country code (US)" />
+            <input id="card-billing-address-postal-code" autocomplete="off" placeholder="Postal/zip code" />
+
+            <br />
+            <button id="card-field-submit-button" type="button">Pay now with Card</button>
+          </div>
         </div>
-        <p id="result-message"></p>
-        <script src="app.js"></script>
-    </body>
+      </div>
+
+      <p id="result-message"></p>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
 </html>
