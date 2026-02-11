@@ -1,18 +1,20 @@
-<div id="paypal-subscribe"></div>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PayPal Subscription</title>
+  </head>
+  <body>
+    <div id="paypal-button-container"></div>
+    <p id="result-message"></p>
 
-<script src="https://www.paypal.com/sdk/js?client-id=AT772idX46ch1nwFcslWB7TPu-LpsAJmit-QC3cNx5H-Z3rXyuFFdOorodY1vQN6U3p5dr4x9wIaSqPs&vault=true&intent=subscription"></script>
+    <!-- Initialize the JS-SDK (SUBSCRIPTION) -->
+    <script
+      src="https://www.paypal.com/sdk/js?client-id=AT772idX46ch1nwFcslWB7TPu-LpsAJmit-QC3cNx5H-Z3rXyuFFdOorodY1vQN6U3p5dr4x9wIaSqPs&vault=true&intent=subscription&components=buttons&currency=USD"
+      data-sdk-integration-source="developer-studio"
+    ></script>
 
-<script>
-paypal.Buttons({
-  style: { shape: 'rect', layout: 'vertical', label: 'subscribe' },
-  createSubscription: function (data, actions) {
-    return actions.subscription.create({
-      plan_id: 'P-9AH50584TF252271ENGFYVPI'
-    });
-  },
-  onApprove: function (data) {
-    // data.subscriptionID — твой ID подписки
-    alert('Подписка оформлена! ID: ' + data.subscriptionID);
-  }
-}).render('#paypal-subscribe');
-</script>
+    <script src="app.js"></script>
+  </body>
+</html>
