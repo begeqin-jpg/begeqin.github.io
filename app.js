@@ -1,112 +1,56 @@
 const paypalButtons = window.paypal.Buttons({
-   style: {
-        shape: "pill",
-        layout: "horizontal",
-        color: "white",
-        label: "paypal",
-    },
-   message: {
-        amount: 100,
-    },
-   async createOrder() {
-        try {
-            const response = await fetch("/api/orders", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                // use the "body" param to optionally pass additional order information
-                // like product ids and quantities
-                body: JSON.stringify({
-                    cart: [
-                        {
-                            id: "YOUR_PRODUCT_ID",
-                            quantity: "YOUR_PRODUCT_QUANTITY",
-                        },
-                    ],
-                }),
-            });
+  style: {
+    shape: "pill",
+    layout: "horizontal",
+    color: "white",
+    label: "paypal",
+  },
 
-            const orderData = await response.json();
+  async createOrder() {
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        item: {
+          name: "Доступ к архиву (разово)",
+          description: "Разовая покупка доступа к архиву",
+          price: "5.00",
+          currency: "USD",
+          quantity: "1",
+        },
+      }),
+    });
 
-            if (orderData.id) {
-                return orderData.id;
-            }
-            const errorDetail = orderData?.details?.[0];
-            const errorMessage = errorDetail
-                ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
-                : JSON.stringify(orderData);
+    const orderData = await response.json();
+    if (orderData.id) return orderData.id;
 
-            throw new Error(errorMessage);
-        } catch (error) {
-            console.error(error);
-            // resultMessage(`Could not initiate PayPal Checkout...<br><br>${error}`);
-        }
-    },
-   async onApprove(data, actions) {
-        try {
-            const response = await fetch(
-                `/api/orders/${data.orderID}/capture`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+    throw new Error(JSON.stringify(orderData));
+  },
 
-            const orderData = await response.json();
-            // Three cases to handle:
-            //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
-            //   (2) Other non-recoverable errors -> Show a failure message
-            //   (3) Successful transaction -> Show confirmation or thank you message
+  async onApprove(data, actions) {
+    const response = await fetch(`/api/orders/${data.orderID}/capture`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
 
-            const errorDetail = orderData?.details?.[0];
+    const orderData = await response.json();
 
-            if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
-                // (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
-                // recoverable state, per
-                // https://developer.paypal.com/docs/checkout/standard/customize/handle-funding-failures/
-                return actions.restart();
-            } else if (errorDetail) {
-                // (2) Other non-recoverable errors -> Show a failure message
-                throw new Error(
-                    `${errorDetail.description} (${orderData.debug_id})`
-                );
-            } else if (!orderData.purchase_units) {
-                throw new Error(JSON.stringify(orderData));
-            } else {
-                // (3) Successful transaction -> Show confirmation or thank you message
-                // Or go to another URL:  actions.redirect('thank_you.html');
-                const transaction =
-                    orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
-                    orderData?.purchase_units?.[0]?.payments
-                        ?.authorizations?.[0];
-                resultMessage(
-                    `Transaction ${transaction.status}: ${transaction.id}<br>
-          <br>See console for all available details`
-                );
-                console.log(
-                    "Capture result",
-                    orderData,
-                    JSON.stringify(orderData, null, 2)
-                );
-            }
-        } catch (error) {
-            console.error(error);
-            resultMessage(
-                `Sorry, your transaction could not be processed...<br><br>${error}`
-            );
-        }
-    },
+    const errorDetail = orderData?.details?.[0];
+    if (errorDetail?.issue === "INSTRUMENT_DECLINED") return actions.restart();
+    if (errorDetail) throw new Error(`${errorDetail.description} (${orderData.debug_id})`);
 
-   
+    const capture = orderData?.purchase_units?.[0]?.payments?.captures?.[0];
+    resultMessage(`✅ Оплачено: ${capture.status}<br>Transaction ID: <b>${capture.id}</b>`);
+  },
+
+  onError(err) {
+    console.error(err);
+    resultMessage(`❌ Ошибка: ${String(err)}`);
+  },
 });
+
 paypalButtons.render("#paypal-button-container");
 
-
-// Example function to show a result to the user. Your site's UI library can be used instead.
 function resultMessage(message) {
-    const container = document.querySelector("#result-message");
-    container.innerHTML = message;
+  document.querySelector("#result-message").innerHTML = message;
 }
