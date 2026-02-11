@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PayPal Subscription</title>
+    <title>Оплата архива (разово)</title>
   </head>
   <body>
     <div id="paypal-button-container"></div>
     <p id="result-message"></p>
 
-    <!-- Initialize the JS-SDK (SUBSCRIPTION) -->
+    <!-- Standard/Expanded checkout (one-time) -->
     <script
-      src="https://www.paypal.com/sdk/js?client-id=AT772idX46ch1nwFcslWB7TPu-LpsAJmit-QC3cNx5H-Z3rXyuFFdOorodY1vQN6U3p5dr4x9wIaSqPs&vault=true&intent=subscription&components=buttons&currency=USD"
+      src="https://www.paypal.com/sdk/js?client-id=AT772idX46ch1nwFcslWB7TPu-LpsAJmit-QC3cNx5H-Z3rXyuFFdOorodY1vQN6U3p5dr4x9wIaSqPs&buyer-country=US&currency=USD&components=buttons&enable-funding=venmo,paylater,card"
       data-sdk-integration-source="developer-studio"
     ></script>
 
