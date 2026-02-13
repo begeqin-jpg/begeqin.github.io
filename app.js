@@ -1,29 +1,57 @@
 paypal.Buttons({
   style: { shape: "pill", layout: "vertical", color: "gold", label: "paypal" },
 
-  // KO-FI LIKE: создаём setup token (billing setup)
-  createBillingAgreement: async () => {
+  // ✅ Правильно для intent=tokenize + vault=true:
+  // создаём VAULT SETUP TOKEN на сервере и возвращаем его ID
+  createVaultSetupToken: async () => {
     resultMessage("");
-    const r = await fetch("/api/setup-token", { method: "POST" });
-    const data = await r.json();
 
-    if (!r.ok) throw new Error(data?.error || JSON.stringify(data));
-    return data.id; // setup_token id
+    const r = await fetch("/api/setup-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        return_url: window.location.href,
+        cancel_url: window.location.href
+      })
+    });
+
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data?.error || data?.message || JSON.stringify(data));
+
+    // PayPal ожидает строку setup_token_id
+    return data.id;
   },
 
   onApprove: async (data) => {
-    // data.billingToken = setup_token
-    console.log("billingToken:", data.billingToken);
+    // ✅ В этом флоу приходит vaultSetupToken
+    console.log("onApprove data:", data);
 
-    // можно просто сохранить billingToken и всё
-    // но для проверки дернем детали:
-    const r = await fetch("/api/setup-token/" + data.billingToken);
-    const info = await r.json();
+    const setupToken = data.vaultSetupToken;
+    if (!setupToken) {
+      throw new Error("No vaultSetupToken returned. Check console data.");
+    }
 
-    if (!r.ok) throw new Error(info?.error || JSON.stringify(info));
+    console.log("vaultSetupToken:", setupToken);
 
+    // (опционально) Получить детали setup token:
+    const r1 = await fetch("/api/setup-token/" + encodeURIComponent(setupToken));
+    const info = await r1.json().catch(() => ({}));
+    if (!r1.ok) throw new Error(info?.error || info?.message || JSON.stringify(info));
     console.log("setup token info:", info);
-    resultMessage("✅ Готово! Способ оплаты сохранён. BillingToken: " + data.billingToken);
+
+    // (рекомендуется) обменять setup token → payment token (долгоживущий)
+    const r2 = await fetch("/api/payment-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vaultSetupToken: setupToken })
+    });
+
+    const out = await r2.json().catch(() => ({}));
+    if (!r2.ok) throw new Error(out?.error || out?.message || JSON.stringify(out));
+
+    console.log("payment token:", out);
+
+    resultMessage("✅ Готово! Способ оплаты сохранён. PaymentToken: " + out.id);
   },
 
   onError: (err) => {
