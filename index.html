@@ -1,82 +1,142 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PayPal Checkout</title>
-  <style>
-    body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    .card{width:min(520px,92vw);padding:24px;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
-    h1{margin:0 0 12px;font-size:20px}
-    .row{display:flex;gap:12px;align-items:center;margin:12px 0 18px}
-    input{
-      flex:1;
-      padding:12px 14px;
-      border:1px solid #d1d5db;
-      border-radius:12px;
-      font-size:16px;
-      outline:none;
-    }
-    input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-    .hint{font-size:12px;color:#6b7280;margin-top:8px}
-    #paypal-button-container{margin-top:6px}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Оплата через PayPal</h1>
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id=AUIEyoriOCmlEGQq88qYLvzbyuzxmHBN2LoVh3mFxlbKVToHby0pSWGb4j6_uf7RqARdtIjtBgs6QCzV&amp;currency=USD&amp;intent=tokenize&amp;commit=false&amp;vault=true&amp;disable-funding=credit,card" data-uid="uid_aoznssiuoofrkysisqpnlrprksvfvd"></script>
 
-    <div class="row">
-      <input id="amount" inputmode="decimal" autocomplete="off" value="10.00" placeholder="Сумма (USD)" />
+<style>
+  .donate-fab{
+    position:fixed; right:18px; bottom:18px;
+    background:#ff5f5f; color:#fff; border:none;
+    padding:12px 16px; border-radius:999px;
+    font:600 14px/1.1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.25);
+    z-index:9999;
+  }
+  .donate-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    display:none; align-items:center; justify-content:center;
+    z-index:10000;
+  }
+  .donate-modal{
+    width:min(420px, 92vw);
+    background:#0f1218; color:#eaf0ff;
+    border-radius:18px; padding:16px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .donate-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .donate-title{ font:700 18px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:0; }
+  .donate-close{
+    background:transparent; border:none; color:#c7d2fe;
+    font-size:22px; cursor:pointer; padding:6px 10px;
+  }
+  .donate-sub{ margin:8px 0 14px; color:#b9c3d9; font:400 13px/1.4 system-ui; }
+  .donate-amounts{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 12px; }
+  .donate-chip{
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);
+    color:#eaf0ff; padding:8px 10px; border-radius:999px; cursor:pointer;
+    font:600 13px/1 system-ui;
+  }
+  .donate-chip.active{ background:rgba(255,95,95,.20); border-color:rgba(255,95,95,.55); }
+  .donate-row{ display:flex; gap:10px; align-items:center; margin:10px 0; }
+  .donate-input{
+    width:120px; padding:10px 12px; border-radius:12px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+    color:#eaf0ff; outline:none;
+    font:600 14px/1 system-ui;
+  }
+  .donate-note{
+    flex:1;
+    padding:10px 12px; border-radius:12px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+    color:#eaf0ff; outline:none;
+    font:500 14px/1 system-ui;
+  }
+  .donate-paypal{ margin-top:12px; }
+  .donate-foot{ margin-top:10px; color:#9aa7c3; font:400 12px/1.4 system-ui; }
+</style>
+
+<button class="donate-fab" id="donateOpen">☕ Support</button>
+
+<div class="donate-backdrop" id="donateBackdrop" aria-hidden="true">
+  <div class="donate-modal" role="dialog" aria-modal="true" aria-label="Donate">
+    <div class="donate-head">
+      <h3 class="donate-title">Support the project</h3>
+      <button class="donate-close" id="donateClose" aria-label="Close">×</button>
+    </div>
+    <div class="donate-sub">Choose an amount (like ko-fi) and pay via PayPal.</div>
+
+    <div class="donate-amounts" id="amountChips">
+      <button class="donate-chip active" data-amount="5">$5</button>
+      <button class="donate-chip" data-amount="10">$10</button>
+      <button class="donate-chip" data-amount="20">$20</button>
+      <button class="donate-chip" data-amount="50">$50</button>
     </div>
 
-    <div id="paypal-button-container"></div>
-    <div class="hint">Сумма берётся из поля выше. Client ID — публичный. Secret в HTML не вставляй.</div>
+    <div class="donate-row">
+      <input class="donate-input" id="donateAmount" type="number" min="1" step="1" value="5" />
+      <input class="donate-note" id="donateNote" type="text" maxlength="120" placeholder="Message (optional)" />
+    </div>
+
+    <div class="donate-paypal" id="paypal-button-container"></div>
+    <div class="donate-foot">Payments are processed by PayPal. Thank you 💙</div>
   </div>
+</div>
 
-  <!-- ВАЖНО: подставь свой Client ID -->
-  <script src="https://www.paypal.com/sdk/js?components=buttons&currency=USD&intent=capture&client-id=AT772idX46ch1nwFcslWB7TPu-LpsAJmit-QC3cNx5H-Z3rXyuFFdOorodY1vQN6U3p5dr4x9wIaSqPs"></script>
+<script>
+  // --- Modal open/close
+  const openBtn = document.getElementById('donateOpen');
+  const backdrop = document.getElementById('donateBackdrop');
+  const closeBtn = document.getElementById('donateClose');
 
+  function openDonate(){ backdrop.style.display = 'flex'; backdrop.setAttribute('aria-hidden','false'); }
+  function closeDonate(){ backdrop.style.display = 'none'; backdrop.setAttribute('aria-hidden','true'); }
 
-  <script>
-    function getAmount() {
-      const raw = (document.getElementById('amount').value || "").trim();
-      const normalized = raw.replace(",", ".").replace(/[^0-9.]/g, "");
-      const n = Number(normalized);
-      if (!Number.isFinite(n) || n <= 0) return null;
-      return n.toFixed(2);
+  openBtn.addEventListener('click', openDonate);
+  closeBtn.addEventListener('click', closeDonate);
+  backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closeDonate(); });
+  window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeDonate(); });
+
+  // --- Amount chips
+  const chipsWrap = document.getElementById('amountChips');
+  const amountInput = document.getElementById('donateAmount');
+
+  chipsWrap.addEventListener('click', (e)=>{
+    const chip = e.target.closest('.donate-chip');
+    if(!chip) return;
+    [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
+    chip.classList.add('active');
+    amountInput.value = chip.dataset.amount;
+  });
+
+  amountInput.addEventListener('input', ()=>{
+    [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
+  });
+
+  // --- PayPal Buttons
+  paypal.Buttons({
+    style: { layout: 'vertical', label: 'donate' },
+
+    createOrder: function(data, actions) {
+      const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
+      const note = (document.getElementById('donateNote').value || '').trim();
+
+      return actions.order.create({
+        purchase_units: [{
+          description: note ? ("Support: " + note) : "Support donation",
+          amount: { value: amount.toString() }
+        }]
+      });
+    },
+
+    onApprove: function(data, actions) {
+      return actions.order.capture().then(function(details) {
+        alert('Thanks, ' + (details?.payer?.name?.given_name || 'friend') + '! 💙');
+        closeDonate();
+      });
+    },
+
+    onError: function(err) {
+      console.error(err);
+      alert('PayPal error. Please try again.');
     }
-
-    paypal.Buttons({
-      fundingSource: paypal.FUNDING.PAYPAL, // одна кнопка PayPal
-      style: {
-        layout: 'vertical',
-        label: 'pay',
-        shape: 'rect',
-        height: 44
-      },
-      createOrder: function (data, actions) {
-        const amount = getAmount();
-        if (!amount) {
-          alert('Введи корректную сумму');
-          throw new Error('Invalid amount');
-        }
-        return actions.order.create({
-          purchase_units: [{
-            amount: { value: amount }
-          }]
-        });
-      },
-      onApprove: function (data, actions) {
-        return actions.order.capture().then(function (details) {
-          alert('Оплачено: ' + (details.payer?.name?.given_name || 'OK'));
-        });
-      },
-      onError: function (err) {
-        console.error(err);
-        alert('Ошибка PayPal. Открой консоль (F12) для деталей.');
-      }
-    }).render('#paypal-button-container');
-  </script>
-</body>
-</html>
+  }).render('#paypal-button-container');
+</script>
