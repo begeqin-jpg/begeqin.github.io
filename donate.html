@@ -1,129 +1,49 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Подписка (как Ko-fi)</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: #0b1220;
+      color: #e5e7eb;
+    }
+    .card {
+      width: min(520px, 92vw);
+      background: rgba(255,255,255,.06);
+      padding: 24px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    .sub { color: #cbd5e1; margin-bottom: 18px; }
+    #paypal-button-container { margin-top: 16px; }
+  </style>
 
-    <title>Оплата архива — PayPal (Подписка)</title>
+  <!-- PAYPAL SDK: KO-FI LIKE (vault/tokenize) -->
+  <script
+    src="https://www.paypal.com/sdk/js?client-id=BAAtI9rDGuse-SHYHpe-9jy-OjX-1SwUz2Xr3OAQVt6wTRA_sO_2EfKpO15bvoiHU--oMZGHbCxtHSfoiM&currency=USD&intent=tokenize&vault=true&components=buttons"
+    data-sdk-integration-source="developer-studio"
+  ></script>
+</head>
 
-    <!-- PayPal JS SDK: Subscription Buttons -->
-    <script
-      src="https://www.paypal.com/sdk/js?client-id=BAAtI9rDGuse-SHYHpe-9jy-OjX-1SwUz2Xr3OAQVt6wTRA_sO_2EfKpO15bvoiHU--oMZGHbCxtHSfoiM&currency=USD&intent=tokenize&vault=true&components=buttons"
-    ></script>
+<body>
+  <div class="card">
+    <h1>Поддержка (как Ko-fi)</h1>
+    <div class="sub">Сохраняем способ оплаты (billing setup). Списания делаются потом на сервере.</div>
+
+    <div id="paypal-button-container"></div>
+    <p id="result-message"></p>
+
     <script src="app.js"></script>
-    
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-        background: #0b1220;
-        color: #e5e7eb;
-      }
-      .card {
-        width: min(720px, 94vw);
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 18px;
-        padding: 22px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-      }
-      h1 {
-        margin: 0 0 6px;
-        font-size: 20px;
-      }
-      .sub {
-        opacity: 0.8;
-        margin-bottom: 14px;
-      }
-
-      .box {
-        background: rgba(0, 0, 0, 0.22);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 14px;
-        padding: 14px;
-      }
-
-      #paypal-button-container {
-        margin-top: 10px;
-      }
-
-      #result-message {
-        margin-top: 12px;
-        font-size: 14px;
-        opacity: 0.95;
-        word-break: break-word;
-      }
-
-      .note {
-        margin-top: 10px;
-        font-size: 12px;
-        opacity: 0.75;
-        line-height: 1.35;
-      }
-      code {
-        background: rgba(255, 255, 255, 0.08);
-        padding: 2px 6px;
-        border-radius: 8px;
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="card">
-      <h1>Оплата архива</h1>
-      <div class="sub">Оплата через PayPal — подписка</div>
-
-      <div class="box">
-        <b>PayPal</b>
-        <div id="paypal-button-container"></div>
-
-        <div class="note">
-          Plan ID: <code>P-49A75212PL6226618NGHCZYI</code>
-        </div>
-      </div>
-
-      <p id="result-message"></p>
-    </div>
-
-    <script>
-      const RESULT = document.getElementById("result-message");
-
-      paypal
-        .Buttons({
-          style: {
-            shape: "rect",
-            color: "gold",
-            layout: "vertical",
-            label: "subscribe",
-          },
-
-          createSubscription: function (data, actions) {
-            return actions.subscription.create({
-              plan_id: "P-49A75212PL6226618NGHCZYI",
-              quantity: 1,
-            });
-          },
-
-          onApprove: function (data, actions) {
-            RESULT.textContent =
-              "✅ Подписка оформлена! Subscription ID: " + data.subscriptionID;
-          },
-
-          onCancel: function () {
-            RESULT.textContent = "ℹ️ Оплата отменена.";
-          },
-
-          onError: function (err) {
-            console.error(err);
-            RESULT.textContent =
-              "❌ Ошибка PayPal. Попробуйте позже или другим способом.";
-          },
-        })
-        .render("#paypal-button-container");
-    </script>
-  </body>
+  </div>
+</body>
 </html>
