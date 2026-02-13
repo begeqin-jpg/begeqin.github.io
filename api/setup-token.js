@@ -41,8 +41,8 @@ export default async function handler(req, res) {
             experience_context: {
               brand_name: "begeqin",
               shipping_preference: "NO_SHIPPING",
-              return_url: "https://YOUR_DOMAIN/donate.html",
-              cancel_url: "https://YOUR_DOMAIN/donate.html",
+              return_url: "https://begeqin-github-io-vota.vercel.app",
+              cancel_url: "https://begeqin-github-io-vota.vercel.app",
             },
           },
         },
