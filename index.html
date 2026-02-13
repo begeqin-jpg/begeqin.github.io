@@ -53,6 +53,19 @@
   .donate-paypal{ margin-top:12px; }
   .donate-foot{ margin-top:10px; color:#9aa7c3; font:400 12px/1.4 system-ui; }
 
+  /* NEW: result message */
+  #result-message{
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:12px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.10);
+    color:#eaf0ff;
+    font:500 12.5px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    white-space:pre-wrap;
+    display:none;
+  }
+
   @media (max-width: 420px) {
     .donate-row { flex-direction: column; align-items: stretch; }
     .donate-input { width: 100%; }
@@ -82,11 +95,29 @@
     </div>
 
     <div class="donate-paypal" id="paypal-button-container"></div>
+
+    <!-- NEW: shows real errors here -->
+    <div id="result-message"></div>
+
     <div class="donate-foot">PayPal Vault (tokenize). Thank you 💙</div>
   </div>
 </div>
 
 <script>
+  // ---------- helpers ----------
+  function resultMessage(message) {
+    const el = document.querySelector("#result-message");
+    if (!el) return;
+    if (!message) { el.style.display = "none"; el.textContent = ""; return; }
+    el.style.display = "block";
+    el.textContent = message;
+  }
+  function pretty(obj) {
+    try { return typeof obj === "string" ? obj : JSON.stringify(obj, null, 2); }
+    catch { return String(obj); }
+  }
+  function log(...args){ console.log("[DONATE]", ...args); }
+
   // --- Modal open/close
   const openBtn = document.getElementById('donateOpen');
   const backdrop = document.getElementById('donateBackdrop');
@@ -95,7 +126,7 @@
   function openDonate(){ backdrop.style.display = 'flex'; backdrop.setAttribute('aria-hidden','false'); }
   function closeDonate(){ backdrop.style.display = 'none'; backdrop.setAttribute('aria-hidden','true'); }
 
-  openBtn.addEventListener('click', openDonate);
+  openBtn.addEventListener('click', () => { resultMessage(""); openDonate(); });
   closeBtn.addEventListener('click', closeDonate);
   backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closeDonate(); });
   window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeDonate(); });
@@ -116,24 +147,27 @@
     [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
   });
 
-  // --- PayPal Buttons (TOKENIZE / VAULT) — ВАЖНО: createBillingAgreement обязателен для intent=tokenize
+  // --- PayPal Buttons (TOKENIZE / VAULT)
   paypal.Buttons({
     style: { layout: 'vertical', label: 'paypal' },
 
-    // ✅ ЭТО УБИРАЕТ ТВОЮ ОШИБКУ "Must pass createBillingAgreement with intent=tokenize"
+    // ✅ required for intent=tokenize (prevents "Must pass createBillingAgreement...")
     createBillingAgreement: function (data, actions) {
       const note = (document.getElementById('donateNote').value || '').trim();
       const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
+      log("createBillingAgreement", { amount, note });
 
       return actions.billingAgreement.create({
         description: note ? (`Support ($${amount}): ${note}`) : `Support ($${amount})`
       });
     },
 
-    // (опционально) новый vault-flow, если SDK вдруг его поддержит
+    // ✅ modern vault flow (if SDK uses it). We log everything.
     createVaultSetupToken: async () => {
       const note = (document.getElementById('donateNote').value || '').trim();
       const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
+
+      resultMessage("Creating setup token…");
 
       const res = await fetch("/api/paypal/create-setup-token", {
         method: "POST",
@@ -146,25 +180,31 @@
       });
 
       const data = await res.json().catch(() => ({}));
+      log("create-setup-token response", res.status, data);
+
       if (!res.ok) {
-        console.error("create-setup-token failed:", data);
+        resultMessage("❌ create-setup-token failed:\n" + pretty(data));
         throw new Error(data?.message || "create-setup-token failed");
       }
+
+      resultMessage("Setup token created ✅\n" + data.id);
       return data.id;
     },
 
     onApprove: async function (data) {
-      // 1) Старый tokenize-флоу: billingAgreementID
+      log("onApprove", data);
+
+      // A) billing agreement flow
       if (data && data.billingAgreementID) {
-        console.log("BillingAgreementID:", data.billingAgreementID);
         try { localStorage.setItem("paypal_billing_agreement_id", data.billingAgreementID); } catch(e) {}
-        alert("Connected ✅\nBillingAgreementID:\n" + data.billingAgreementID);
-        closeDonate();
+        resultMessage("✅ Connected (BillingAgreementID):\n" + data.billingAgreementID);
         return;
       }
 
-      // 2) Новый vault-флоу: vaultSetupToken
+      // B) vault setup token flow
       if (data && data.vaultSetupToken) {
+        resultMessage("Setup approved ✅\nCreating payment token…");
+
         const res = await fetch("/api/paypal/create-payment-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -172,25 +212,27 @@
         });
 
         const out = await res.json().catch(() => ({}));
+        log("create-payment-token response", res.status, out);
+
         if (!res.ok) {
-          console.error("create-payment-token failed:", out);
-          alert("PayPal error. Please try again.");
+          resultMessage("❌ create-payment-token failed:\n" + pretty(out));
           return;
         }
 
-        console.log("Payment Token:", out);
         try { localStorage.setItem("paypal_payment_token_id", out.id); } catch(e) {}
-        alert("Saved ✅\nPaymentTokenID:\n" + out.id);
-        closeDonate();
+        resultMessage("✅ Saved (PaymentTokenID):\n" + out.id);
         return;
       }
 
-      console.log("onApprove data:", data);
-      alert("Approved, but no token returned. Check console.");
+      resultMessage("Approved, but no token returned.\n" + pretty(data));
     },
 
     onError: (err) => {
-      console.error("PayPal onError:", err);
+      log("PayPal onError", err);
+
+      // PayPal SDK sometimes gives { message, stack, ... } or nested info
+      const msg = (err && (err.message || err.toString())) ? (err.message || err.toString()) : "Unknown error";
+      resultMessage("❌ PayPal SDK error:\n" + msg + "\n\nRaw:\n" + pretty(err));
       alert("PayPal error. Please try again.");
     }
   }).render("#paypal-button-container");
