@@ -53,7 +53,6 @@
   .donate-paypal{ margin-top:12px; }
   .donate-foot{ margin-top:10px; color:#9aa7c3; font:400 12px/1.4 system-ui; }
 
-  /* optional: hide amount on mobile keyboard overlap */
   @media (max-width: 420px) {
     .donate-row { flex-direction: column; align-items: stretch; }
     .donate-input { width: 100%; }
@@ -117,11 +116,21 @@
     [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
   });
 
-  // --- PayPal Buttons (TOKENIZE / VAULT)
+  // --- PayPal Buttons (TOKENIZE / VAULT) — ВАЖНО: createBillingAgreement обязателен для intent=tokenize
   paypal.Buttons({
     style: { layout: 'vertical', label: 'paypal' },
 
-    // ВАЖНО: под intent=tokenize SDK ждёт createVaultSetupToken
+    // ✅ ЭТО УБИРАЕТ ТВОЮ ОШИБКУ "Must pass createBillingAgreement with intent=tokenize"
+    createBillingAgreement: function (data, actions) {
+      const note = (document.getElementById('donateNote').value || '').trim();
+      const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
+
+      return actions.billingAgreement.create({
+        description: note ? (`Support ($${amount}): ${note}`) : `Support ($${amount})`
+      });
+    },
+
+    // (опционально) новый vault-flow, если SDK вдруг его поддержит
     createVaultSetupToken: async () => {
       const note = (document.getElementById('donateNote').value || '').trim();
       const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
@@ -141,36 +150,47 @@
         console.error("create-setup-token failed:", data);
         throw new Error(data?.message || "create-setup-token failed");
       }
-
-      return data.id; // setup_token_id
+      return data.id;
     },
 
-    onApprove: async ({ vaultSetupToken }) => {
-      // Меняем setup token → payment token (vault)
-      const res = await fetch("/api/paypal/create-payment-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vaultSetupToken })
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        console.error("create-payment-token failed:", data);
-        alert("PayPal error. Please try again.");
+    onApprove: async function (data) {
+      // 1) Старый tokenize-флоу: billingAgreementID
+      if (data && data.billingAgreementID) {
+        console.log("BillingAgreementID:", data.billingAgreementID);
+        try { localStorage.setItem("paypal_billing_agreement_id", data.billingAgreementID); } catch(e) {}
+        alert("Connected ✅\nBillingAgreementID:\n" + data.billingAgreementID);
+        closeDonate();
         return;
       }
 
-      // data.id = payment_token_id (важная штука)
-      console.log("Payment Token:", data);
+      // 2) Новый vault-флоу: vaultSetupToken
+      if (data && data.vaultSetupToken) {
+        const res = await fetch("/api/paypal/create-payment-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken })
+        });
 
-      try { localStorage.setItem("paypal_payment_token_id", data.id); } catch(e) {}
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("create-payment-token failed:", out);
+          alert("PayPal error. Please try again.");
+          return;
+        }
 
-      alert("Saved! ✅\nPaymentTokenID:\n" + data.id);
-      closeDonate();
+        console.log("Payment Token:", out);
+        try { localStorage.setItem("paypal_payment_token_id", out.id); } catch(e) {}
+        alert("Saved ✅\nPaymentTokenID:\n" + out.id);
+        closeDonate();
+        return;
+      }
+
+      console.log("onApprove data:", data);
+      alert("Approved, but no token returned. Check console.");
     },
 
     onError: (err) => {
-      console.error(err);
+      console.error("PayPal onError:", err);
       alert("PayPal error. Please try again.");
     }
   }).render("#paypal-button-container");
