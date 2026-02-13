@@ -53,7 +53,7 @@
   .donate-paypal{ margin-top:12px; }
   .donate-foot{ margin-top:10px; color:#9aa7c3; font:400 12px/1.4 system-ui; }
 
-  /* NEW: result message */
+  /* message box */
   #result-message{
     margin-top:10px;
     padding:10px 12px;
@@ -95,8 +95,6 @@
     </div>
 
     <div class="donate-paypal" id="paypal-button-container"></div>
-
-    <!-- NEW: shows real errors here -->
     <div id="result-message"></div>
 
     <div class="donate-foot">PayPal Vault (tokenize). Thank you 💙</div>
@@ -147,22 +145,11 @@
     [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
   });
 
-  // --- PayPal Buttons (TOKENIZE / VAULT)
+  // --- PayPal Buttons (TOKENIZE / VAULT) — ONLY Vault Setup Token flow (no billingAgreement)
   paypal.Buttons({
     style: { layout: 'vertical', label: 'paypal' },
 
-    // ✅ required for intent=tokenize (prevents "Must pass createBillingAgreement...")
-    createBillingAgreement: function (data, actions) {
-      const note = (document.getElementById('donateNote').value || '').trim();
-      const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
-      log("createBillingAgreement", { amount, note });
-
-      return actions.billingAgreement.create({
-        description: note ? (`Support ($${amount}): ${note}`) : `Support ($${amount})`
-      });
-    },
-
-    // ✅ modern vault flow (if SDK uses it). We log everything.
+    // ✅ intent=tokenize + vault=true: createVaultSetupToken
     createVaultSetupToken: async () => {
       const note = (document.getElementById('donateNote').value || '').trim();
       const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
@@ -182,7 +169,7 @@
       const data = await res.json().catch(() => ({}));
       log("create-setup-token response", res.status, data);
 
-      if (!res.ok) {
+      if (!res.ok || !data.id) {
         resultMessage("❌ create-setup-token failed:\n" + pretty(data));
         throw new Error(data?.message || "create-setup-token failed");
       }
@@ -191,46 +178,36 @@
       return data.id;
     },
 
-    onApprove: async function (data) {
+    onApprove: async (data) => {
       log("onApprove", data);
 
-      // A) billing agreement flow
-      if (data && data.billingAgreementID) {
-        try { localStorage.setItem("paypal_billing_agreement_id", data.billingAgreementID); } catch(e) {}
-        resultMessage("✅ Connected (BillingAgreementID):\n" + data.billingAgreementID);
+      if (!data || !data.vaultSetupToken) {
+        resultMessage("Approved, but no vaultSetupToken returned.\n" + pretty(data));
         return;
       }
 
-      // B) vault setup token flow
-      if (data && data.vaultSetupToken) {
-        resultMessage("Setup approved ✅\nCreating payment token…");
+      resultMessage("Setup approved ✅\nCreating payment token…");
 
-        const res = await fetch("/api/paypal/create-payment-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken })
-        });
+      const res = await fetch("/api/paypal/create-payment-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken })
+      });
 
-        const out = await res.json().catch(() => ({}));
-        log("create-payment-token response", res.status, out);
+      const out = await res.json().catch(() => ({}));
+      log("create-payment-token response", res.status, out);
 
-        if (!res.ok) {
-          resultMessage("❌ create-payment-token failed:\n" + pretty(out));
-          return;
-        }
-
-        try { localStorage.setItem("paypal_payment_token_id", out.id); } catch(e) {}
-        resultMessage("✅ Saved (PaymentTokenID):\n" + out.id);
+      if (!res.ok || !out.id) {
+        resultMessage("❌ create-payment-token failed:\n" + pretty(out));
         return;
       }
 
-      resultMessage("Approved, but no token returned.\n" + pretty(data));
+      try { localStorage.setItem("paypal_payment_token_id", out.id); } catch(e) {}
+      resultMessage("✅ Saved (PaymentTokenID):\n" + out.id);
     },
 
     onError: (err) => {
       log("PayPal onError", err);
-
-      // PayPal SDK sometimes gives { message, stack, ... } or nested info
       const msg = (err && (err.message || err.toString())) ? (err.message || err.toString()) : "Unknown error";
       resultMessage("❌ PayPal SDK error:\n" + msg + "\n\nRaw:\n" + pretty(err));
       alert("PayPal error. Please try again.");
