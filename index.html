@@ -95,7 +95,7 @@
   backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closeDonate(); });
   window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeDonate(); });
 
-  // --- Amount chips
+  // --- Amount chips (оставляем для UI, но tokenize их НЕ списывает)
   const chipsWrap = document.getElementById('amountChips');
   const amountInput = document.getElementById('donateAmount');
 
@@ -111,30 +111,35 @@
     [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
   });
 
-  // --- PayPal Buttons
+  // --- PayPal Buttons (TOKENIZE / VAULT flow)
   paypal.Buttons({
-    style: { layout: 'vertical', label: 'donate' },
+    style: { layout: 'vertical', label: 'paypal' },
 
-    createOrder: function(data, actions) {
-      const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
+    // КЛЮЧЕВО: для intent=tokenize нужен createBillingAgreement
+    createBillingAgreement: function (data, actions) {
       const note = (document.getElementById('donateNote').value || '').trim();
+      const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
 
-      return actions.order.create({
-        purchase_units: [{
-          description: note ? ("Support: " + note) : "Support donation",
-          amount: { value: amount.toString() }
-        }]
+      // В этом режиме сумма НЕ списывается, но можно передать описание
+      return actions.billingAgreement.create({
+        description: note ? (`Support ($${amount}): ` + note) : `Support ($${amount})`
       });
     },
 
-    onApprove: function(data, actions) {
-      return actions.order.capture().then(function(details) {
-        alert('Thanks, ' + (details?.payer?.name?.given_name || 'friend') + '! 💙');
-        closeDonate();
-      });
+    onApprove: function (data, actions) {
+      // Здесь приходит billingAgreementID (токен/соглашение)
+      const baID = data.billingAgreementID;
+
+      console.log('BillingAgreementID:', baID);
+
+      // Если хочешь — сохрани в localStorage (например для передачи на сервер позже)
+      try { localStorage.setItem('paypal_billing_agreement_id', baID); } catch(e) {}
+
+      alert('PayPal connected! ✅\nBillingAgreementID:\n' + baID);
+      closeDonate();
     },
 
-    onError: function(err) {
+    onError: function (err) {
       console.error(err);
       alert('PayPal error. Please try again.');
     }
