@@ -145,72 +145,83 @@
     [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
   });
 
-  // --- PayPal Buttons (TOKENIZE / VAULT) — ONLY Vault Setup Token flow (no billingAgreement)
-  paypal.Buttons({
-    style: { layout: 'vertical', label: 'paypal' },
-
-    // ✅ intent=tokenize + vault=true: createVaultSetupToken
-    createVaultSetupToken: async () => {
-      const note = (document.getElementById('donateNote').value || '').trim();
-      const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
-
-      resultMessage("Creating setup token…");
-
-      const res = await fetch("/api/paypal/create-setup-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: note ? (`Support ($${amount}): ${note}`) : `Support ($${amount})`,
-          return_url: window.location.href,
-          cancel_url: window.location.href
-        })
-      });
-
-      const data = await res.json().catch(() => ({}));
-      log("create-setup-token response", res.status, data);
-
-      if (!res.ok || !data.id) {
-        resultMessage("❌ create-setup-token failed:\n" + pretty(data));
-        throw new Error(data?.message || "create-setup-token failed");
-      }
-
-      resultMessage("Setup token created ✅\n" + data.id);
-      return data.id;
-    },
-
-    onApprove: async (data) => {
-      log("onApprove", data);
-
-      if (!data || !data.vaultSetupToken) {
-        resultMessage("Approved, but no vaultSetupToken returned.\n" + pretty(data));
-        return;
-      }
-
-      resultMessage("Setup approved ✅\nCreating payment token…");
-
-      const res = await fetch("/api/paypal/create-payment-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken })
-      });
-
-      const out = await res.json().catch(() => ({}));
-      log("create-payment-token response", res.status, out);
-
-      if (!res.ok || !out.id) {
-        resultMessage("❌ create-payment-token failed:\n" + pretty(out));
-        return;
-      }
-
-      try { localStorage.setItem("paypal_payment_token_id", out.id); } catch(e) {}
-      resultMessage("✅ Saved (PaymentTokenID):\n" + out.id);
-    },
-
-    onError: (err) => {
-      log("PayPal onError", err);
-      const msg = (err && (err.message || err.toString())) ? (err.message || err.toString()) : "Unknown error";
-      resultMessage("❌ PayPal SDK error:\n" + msg + "\n\nRaw:\n" + pretty(err));
-      alert("PayPal error. Please try again.");
+  // --- PayPal Buttons (TOKENIZE / VAULT) — ONLY Vault Setup Token flow
+  (function initPayPal(){
+    if (!window.paypal || !paypal.Buttons) {
+      resultMessage("❌ PayPal SDK не загрузился (window.paypal пустой).");
+      return;
     }
-  }).render("#paypal-button-container");
+
+    const trace = () => (Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,8)).toUpperCase();
+
+    paypal.Buttons({
+      style: { layout: 'vertical', label: 'paypal' },
+
+      createVaultSetupToken: async () => {
+        const t = trace();
+        const note = (document.getElementById('donateNote').value || '').trim();
+        const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
+
+        resultMessage(`(${t}) Creating setup token…`);
+
+        const res = await fetch("/api/paypal/create-setup-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description: note ? (`Support ($${amount}): ${note}`) : `Support ($${amount})`,
+            return_url: window.location.href,
+            cancel_url: window.location.href
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        log("create-setup-token", t, res.status, data);
+
+        if (!res.ok || !data.id) {
+          resultMessage(`(${t}) ❌ create-setup-token failed\nHTTP ${res.status}\n` + pretty(data));
+          throw new Error(data?.message || "create-setup-token failed");
+        }
+
+        resultMessage(`(${t}) ✅ Setup token created\n${data.id}`);
+        return data.id;
+      },
+
+      onApprove: async (data) => {
+        log("onApprove", data);
+
+        if (!data || !data.vaultSetupToken) {
+          resultMessage("❌ Approved, but no vaultSetupToken returned.\n" + pretty(data));
+          return;
+        }
+
+        resultMessage("✅ Setup approved\nCreating payment token…");
+
+        const res = await fetch("/api/paypal/create-payment-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken })
+        });
+
+        const out = await res.json().catch(() => ({}));
+        log("create-payment-token", res.status, out);
+
+        if (!res.ok || !out.id) {
+          resultMessage("❌ create-payment-token failed\nHTTP " + res.status + "\n" + pretty(out));
+          return;
+        }
+
+        try { localStorage.setItem("paypal_payment_token_id", out.id); } catch(e) {}
+        resultMessage("✅ Saved (PaymentTokenID):\n" + out.id);
+      },
+
+      onError: (err) => {
+        log("PayPal onError", err);
+
+        // ВАЖНО: НЕ показываем alert — он скрывает детали.
+        // Покажем всё в модалке.
+        const msg = (err && (err.message || err.toString())) ? (err.message || err.toString()) : "Unknown error";
+        resultMessage("❌ PayPal SDK error:\n" + msg + "\n\nRaw:\n" + pretty(err));
+      }
+    }).render("#paypal-button-container");
+  })();
 </script>
