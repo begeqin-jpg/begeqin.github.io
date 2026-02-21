@@ -1,83 +1,297 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Summary</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Summary</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#f0f0f0;font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;color:#333}
-.card{background:#fff;border-radius:16px;padding:32px;width:100%;max-width:440px;box-shadow:0 2px 20px rgba(0,0,0,0.08)}
-.seller-info{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-.seller-avatar{width:32px;height:32px;border-radius:50%;background:#ccc;overflow:hidden}
-.seller-name{font-size:14px;color:#444;font-weight:500}
-.guest-notice{font-size:13px;color:#666;margin-bottom:20px;line-height:1.5}
-.order-box{border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;margin-bottom:24px}
-.order-item{display:flex;justify-content:space-between;padding:16px 18px;font-size:14px;font-weight:500}
-.order-total{display:flex;justify-content:space-between;padding:14px 18px;font-size:14px;font-weight:600;background:#f7f7f7}
-.label{font-size:13px;font-weight:600;margin-bottom:8px}
-.email-input{width:100%;padding:12px;border:1px solid #e8e8e8;border-radius:8px;margin-bottom:22px}
-#paypal-button-container{margin-top:10px}
-</style>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #f0f0f0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
 
-<!-- PAYPAL SDK -->
-<script nonce="" src="https://www.paypal.com/sdk/js?client-id=AUIEyoriOCmlEGQq88qYLvzbyuzxmHBN2LoVh3mFxlbKVToHby0pSWGb4j6_uf7RqARdtIjtBgs6QCzV&amp;currency=USD&amp;intent=tokenize&amp;commit=false&amp;vault=true&amp;disable-funding=credit,card" data-uid="uid_aoznssiuoofrkysisqpnlrprksvfvd"></script>
+    .seller-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .seller-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #ccc;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+    }
+    .seller-name {
+      font-size: 14px;
+      color: #444;
+      font-weight: 500;
+    }
 
+    .guest-notice {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .guest-notice a {
+      color: #29abe0;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .guest-notice a:hover { text-decoration: underline; }
+
+    .order-box {
+      border: 1px solid #e8e8e8;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #fff;
+      gap: 12px;
+    }
+    .order-item .left { display: flex; flex-direction: column; gap: 6px; }
+    .order-item small { font-size: 12px; color: #888; font-weight: 500; }
+
+    .order-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      background: #f7f7f7;
+      border-top: 1px solid #e8e8e8;
+    }
+
+    .label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .email-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #f7f7f7;
+      color: #333;
+      outline: none;
+      margin-bottom: 22px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .email-input:focus {
+      border-color: #29abe0;
+      background: #fff;
+    }
+
+    .payment-section .label { margin-bottom: 4px; }
+    .payment-desc {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    /* контейнер PayPal кнопок — чтобы выглядело как "одна большая кнопка" */
+    #paypal-button-container { margin-bottom: 14px; }
+
+    .disclaimer {
+      font-size: 11px;
+      color: #999;
+      line-height: 1.6;
+    }
+
+    .msg {
+      display: none;
+      margin-top: 12px;
+      font-size: 12px;
+      white-space: pre-wrap;
+      padding: 10px 12px;
+      border-radius: 10px;
+    }
+    .msg.ok { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.25); color: #166534; }
+    .msg.err{ background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.25); color: #7f1d1d; }
+  </style>
+
+  <!-- PayPal SDK: замени YOUR_PAYPAL_CLIENT_ID -->
+  <script src="https://www.paypal.com/sdk/js?client-id=AUIEyoriOCmlEGQq88qYLvzbyuzxmHBN2LoVh3mFxlbKVToHby0pSWGb4j6_uf7RqARdtIjtBgs6QCzV&currency=USD&intent=capture"></script>
 </head>
+
 <body>
+  <div class="card">
+    <!-- Seller info -->
+    <div class="seller-info">
+      <div class="seller-avatar" aria-hidden="true">
+        <!-- простой аватар -->
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="16" fill="#ddd"/>
+          <circle cx="16" cy="13" r="5" fill="#aaa"/>
+          <path d="M6 28c0-5.523 4.477-10 10-10s10 4.477 10 10" fill="#aaa"/>
+        </svg>
+      </div>
+      <span class="seller-name">Seller is <b id="sellerName">dreaglook00</b></span>
+    </div>
 
-<div class="card">
+    <!-- Guest notice -->
+    <p class="guest-notice">
+      You're not signed in. You can continue as a guest,
+      <a href="#" onclick="return false;">sign in</a> or <a href="#" onclick="return false;">create an account</a>
+    </p>
 
-<div class="seller-info">
-<div class="seller-avatar"></div>
-<span class="seller-name">Seller is dreaglook00</span>
-</div>
+    <!-- Order summary -->
+    <div class="order-box">
+      <div class="order-item">
+        <div class="left">
+          <span id="itemTitle">Monthly support for dreaglook00</span>
+          <small>You can change the amount below</small>
+        </div>
+        <span id="itemPrice">$5</span>
+      </div>
+      <div class="order-total">
+        <span>Total</span>
+        <span id="totalPrice">$5.00</span>
+      </div>
+    </div>
 
-<p class="guest-notice">You're not signed in. Continue as guest.</p>
+    <!-- Email -->
+    <div class="label">Email address</div>
+    <input id="email" class="email-input" type="email" placeholder="" autocomplete="email">
 
-<div class="order-box">
-<div class="order-item">
-<span>Monthly support for dreaglook00</span>
-<span>$5</span>
-</div>
-<div class="order-total">
-<span>Total</span>
-<span>$5.00</span>
-</div>
-</div>
+    <!-- Payment -->
+    <div class="payment-section">
+      <div class="label">Payment</div>
+      <div class="payment-desc">You're paying the seller directly.</div>
 
-<div class="label">Email address</div>
-<input class="email-input" type="email">
+      <!-- Amount control -->
+      <div class="label" style="margin-top:10px;">Amount (USD)</div>
+      <input id="amount" class="email-input" inputmode="decimal" value="5.00" />
 
-<div class="label">Payment</div>
+      <!-- PayPal -->
+      <div id="paypal-button-container"></div>
 
-<!-- PAYPAL BUTTON RENDER HERE -->
-<div id="paypal-button-container"></div>
+      <p class="disclaimer">
+        By proceeding with your payment, you acknowledge that you are buying directly from the seller.
+        If you need help with the order, contact the seller.
+      </p>
 
-</div>
+      <div id="ok" class="msg ok"></div>
+      <div id="err" class="msg err"></div>
+    </div>
+  </div>
 
-<script>
-paypal.Buttons({
+  <script>
+    const amountEl = document.getElementById('amount');
+    const itemPriceEl = document.getElementById('itemPrice');
+    const totalPriceEl = document.getElementById('totalPrice');
+    const okEl = document.getElementById('ok');
+    const errEl = document.getElementById('err');
 
-createOrder: function(data, actions) {
-  return actions.order.create({
-    purchase_units: [{
-      amount: { value: "5.00" }
-    }]
-  });
-},
+    function showOk(text){
+      errEl.style.display = 'none';
+      okEl.textContent = text;
+      okEl.style.display = 'block';
+    }
+    function showErr(text){
+      okEl.style.display = 'none';
+      errEl.textContent = text;
+      errEl.style.display = 'block';
+    }
 
-onApprove: function(data, actions) {
-  return actions.order.capture().then(function(details) {
-    alert("Payment successful by " + details.payer.name.given_name);
-  });
-}
+    function normAmount(){
+      const raw = (amountEl.value || '').trim().replace(',', '.');
+      const v = Number(raw);
+      if (!Number.isFinite(v) || v <= 0) return null;
+      return v.toFixed(2);
+    }
 
-}).render('#paypal-button-container');
-</script>
+    function syncUI(){
+      const a = normAmount();
+      if (!a) return;
+      itemPriceEl.textContent = `$${Number(a).toFixed(0) === Number(a) ? Number(a).toFixed(0) : a}`;
+      totalPriceEl.textContent = `$${a}`;
+    }
+    amountEl.addEventListener('input', () => { syncUI(); });
 
+    syncUI();
+
+    // Render PayPal button
+    paypal.Buttons({
+      style: {
+        layout: 'vertical',
+        shape: 'pill',
+        label: 'pay'
+      },
+
+      createOrder: (data, actions) => {
+        const a = normAmount();
+        if (!a) {
+          showErr('Enter a valid amount (example: 5.00)');
+          throw new Error('Invalid amount');
+        }
+        // очищаем сообщения
+        okEl.style.display = 'none';
+        errEl.style.display = 'none';
+
+        return actions.order.create({
+          intent: 'CAPTURE',
+          purchase_units: [{
+            amount: { currency_code: 'USD', value: a },
+            description: 'Direct payment'
+          }]
+        });
+      },
+
+      onApprove: (data, actions) => {
+        return actions.order.capture().then(details => {
+          const orderId = details?.id || data.orderID;
+          showOk(`Payment successful ✅\nOrder ID: ${orderId}`);
+        });
+      },
+
+      onCancel: () => {
+        showErr('Payment canceled.');
+      },
+
+      onError: (err) => {
+        console.error(err);
+        showErr('PayPal error:\n' + (err?.message || String(err)));
+      }
+    }).render('#paypal-button-container');
+  </script>
 </body>
 </html>
