@@ -1,227 +1,83 @@
-<!-- PayPal SDK (НЕ МЕНЯЕМ как ты просил) -->
-<script src="https://www.paypal.com/sdk/js?client-id=Aaqa1Uyr825beuIzTOVq2Q0Q-C1hnuS3ibuBdpBHS2CMCgt3LrXDpqJ7TPao4trHTRZWX-RZJxoUxvUj&currency=USD&intent=tokenize&commit=false&vault=true&disable-funding=credit,card"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summary</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-  .donate-fab{
-    position:fixed; right:18px; bottom:18px;
-    background:#ff5f5f; color:#fff; border:none;
-    padding:12px 16px; border-radius:999px;
-    font:600 14px/1.1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.25);
-    z-index:9999;
-  }
-  .donate-backdrop{
-    position:fixed; inset:0; background:rgba(0,0,0,.55);
-    display:none; align-items:center; justify-content:center;
-    z-index:10000;
-  }
-  .donate-modal{
-    width:min(420px, 92vw);
-    background:#0f1218; color:#eaf0ff;
-    border-radius:18px; padding:16px;
-    box-shadow:0 20px 60px rgba(0,0,0,.5);
-    border:1px solid rgba(255,255,255,.08);
-  }
-  .donate-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .donate-title{ font:700 18px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:0; }
-  .donate-close{
-    background:transparent; border:none; color:#c7d2fe;
-    font-size:22px; cursor:pointer; padding:6px 10px;
-  }
-  .donate-sub{ margin:8px 0 14px; color:#b9c3d9; font:400 13px/1.4 system-ui; }
-  .donate-amounts{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 12px; }
-  .donate-chip{
-    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);
-    color:#eaf0ff; padding:8px 10px; border-radius:999px; cursor:pointer;
-    font:600 13px/1 system-ui;
-  }
-  .donate-chip.active{ background:rgba(255,95,95,.20); border-color:rgba(255,95,95,.55); }
-  .donate-row{ display:flex; gap:10px; align-items:center; margin:10px 0; }
-  .donate-input{
-    width:120px; padding:10px 12px; border-radius:12px;
-    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
-    color:#eaf0ff; outline:none;
-    font:600 14px/1 system-ui;
-  }
-  .donate-note{
-    flex:1;
-    padding:10px 12px; border-radius:12px;
-    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
-    color:#eaf0ff; outline:none;
-    font:500 14px/1 system-ui;
-  }
-  .donate-paypal{ margin-top:12px; }
-  .donate-foot{ margin-top:10px; color:#9aa7c3; font:400 12px/1.4 system-ui; }
-
-  /* message box */
-  #result-message{
-    margin-top:10px;
-    padding:10px 12px;
-    border-radius:12px;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.10);
-    color:#eaf0ff;
-    font:500 12.5px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    white-space:pre-wrap;
-    display:none;
-  }
-
-  @media (max-width: 420px) {
-    .donate-row { flex-direction: column; align-items: stretch; }
-    .donate-input { width: 100%; }
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0f0f0;font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;color:#333}
+.card{background:#fff;border-radius:16px;padding:32px;width:100%;max-width:440px;box-shadow:0 2px 20px rgba(0,0,0,0.08)}
+.seller-info{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.seller-avatar{width:32px;height:32px;border-radius:50%;background:#ccc;overflow:hidden}
+.seller-name{font-size:14px;color:#444;font-weight:500}
+.guest-notice{font-size:13px;color:#666;margin-bottom:20px;line-height:1.5}
+.order-box{border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;margin-bottom:24px}
+.order-item{display:flex;justify-content:space-between;padding:16px 18px;font-size:14px;font-weight:500}
+.order-total{display:flex;justify-content:space-between;padding:14px 18px;font-size:14px;font-weight:600;background:#f7f7f7}
+.label{font-size:13px;font-weight:600;margin-bottom:8px}
+.email-input{width:100%;padding:12px;border:1px solid #e8e8e8;border-radius:8px;margin-bottom:22px}
+#paypal-button-container{margin-top:10px}
 </style>
 
-<button class="donate-fab" id="donateOpen">☕ Support</button>
+<!-- PAYPAL SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id=AUIEyoriOCmlEGQq88qYLvzbyuzxmHBN2LoVh3mFxlbKVToHby0pSWGb4j6_uf7RqARdtIjtBgs6QCzV&currency=USD"></script>
 
-<div class="donate-backdrop" id="donateBackdrop" aria-hidden="true">
-  <div class="donate-modal" role="dialog" aria-modal="true" aria-label="Donate">
-    <div class="donate-head">
-      <h3 class="donate-title">Support the project</h3>
-      <button class="donate-close" id="donateClose" aria-label="Close">×</button>
-    </div>
-    <div class="donate-sub">Choose an amount (like ko-fi) and connect PayPal (vault/tokenize).</div>
+</head>
+<body>
 
-    <div class="donate-amounts" id="amountChips">
-      <button class="donate-chip active" data-amount="5">$5</button>
-      <button class="donate-chip" data-amount="10">$10</button>
-      <button class="donate-chip" data-amount="20">$20</button>
-      <button class="donate-chip" data-amount="50">$50</button>
-    </div>
+<div class="card">
 
-    <div class="donate-row">
-      <input class="donate-input" id="donateAmount" type="number" min="1" step="1" value="5" />
-      <input class="donate-note" id="donateNote" type="text" maxlength="120" placeholder="Message (optional)" />
-    </div>
+<div class="seller-info">
+<div class="seller-avatar"></div>
+<span class="seller-name">Seller is dreaglook00</span>
+</div>
 
-    <div class="donate-paypal" id="paypal-button-container"></div>
-    <div id="result-message"></div>
+<p class="guest-notice">You're not signed in. Continue as guest.</p>
 
-    <div class="donate-foot">PayPal Vault (tokenize). Thank you 💙</div>
-  </div>
+<div class="order-box">
+<div class="order-item">
+<span>Monthly support for dreaglook00</span>
+<span>$5</span>
+</div>
+<div class="order-total">
+<span>Total</span>
+<span>$5.00</span>
+</div>
+</div>
+
+<div class="label">Email address</div>
+<input class="email-input" type="email">
+
+<div class="label">Payment</div>
+
+<!-- PAYPAL BUTTON RENDER HERE -->
+<div id="paypal-button-container"></div>
+
 </div>
 
 <script>
-  // ---------- helpers ----------
-  function resultMessage(message) {
-    const el = document.querySelector("#result-message");
-    if (!el) return;
-    if (!message) { el.style.display = "none"; el.textContent = ""; return; }
-    el.style.display = "block";
-    el.textContent = message;
-  }
-  function pretty(obj) {
-    try { return typeof obj === "string" ? obj : JSON.stringify(obj, null, 2); }
-    catch { return String(obj); }
-  }
-  function log(...args){ console.log("[DONATE]", ...args); }
+paypal.Buttons({
 
-  // --- Modal open/close
-  const openBtn = document.getElementById('donateOpen');
-  const backdrop = document.getElementById('donateBackdrop');
-  const closeBtn = document.getElementById('donateClose');
-
-  function openDonate(){ backdrop.style.display = 'flex'; backdrop.setAttribute('aria-hidden','false'); }
-  function closeDonate(){ backdrop.style.display = 'none'; backdrop.setAttribute('aria-hidden','true'); }
-
-  openBtn.addEventListener('click', () => { resultMessage(""); openDonate(); });
-  closeBtn.addEventListener('click', closeDonate);
-  backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closeDonate(); });
-  window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeDonate(); });
-
-  // --- Amount chips
-  const chipsWrap = document.getElementById('amountChips');
-  const amountInput = document.getElementById('donateAmount');
-
-  chipsWrap.addEventListener('click', (e)=>{
-    const chip = e.target.closest('.donate-chip');
-    if(!chip) return;
-    [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
-    chip.classList.add('active');
-    amountInput.value = chip.dataset.amount;
+createOrder: function(data, actions) {
+  return actions.order.create({
+    purchase_units: [{
+      amount: { value: "5.00" }
+    }]
   });
+},
 
-  amountInput.addEventListener('input', ()=>{
-    [...chipsWrap.querySelectorAll('.donate-chip')].forEach(b=>b.classList.remove('active'));
+onApprove: function(data, actions) {
+  return actions.order.capture().then(function(details) {
+    alert("Payment successful by " + details.payer.name.given_name);
   });
+}
 
-  // --- PayPal Buttons (TOKENIZE / VAULT) — ONLY Vault Setup Token flow
-  (function initPayPal(){
-    if (!window.paypal || !paypal.Buttons) {
-      resultMessage("❌ PayPal SDK не загрузился (window.paypal пустой).");
-      return;
-    }
-
-    const trace = () => (Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,8)).toUpperCase();
-
-    paypal.Buttons({
-      style: { layout: 'vertical', label: 'paypal' },
-
-      createVaultSetupToken: async () => {
-        const t = trace();
-        const note = (document.getElementById('donateNote').value || '').trim();
-        const amount = Math.max(1, Math.round(Number(amountInput.value || 1)));
-
-        resultMessage(`(${t}) Creating setup token…`);
-
-        const res = await fetch("/api/paypal/create-setup-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description: note ? (`Support ($${amount}): ${note}`) : `Support ($${amount})`,
-            return_url: window.location.href,
-            cancel_url: window.location.href
-          })
-        });
-
-        const data = await res.json().catch(() => ({}));
-        log("create-setup-token", t, res.status, data);
-
-        if (!res.ok || !data.id) {
-          resultMessage(`(${t}) ❌ create-setup-token failed\nHTTP ${res.status}\n` + pretty(data));
-          throw new Error(data?.message || "create-setup-token failed");
-        }
-
-        resultMessage(`(${t}) ✅ Setup token created\n${data.id}`);
-        return data.id;
-      },
-
-      onApprove: async (data) => {
-        log("onApprove", data);
-
-        if (!data || !data.vaultSetupToken) {
-          resultMessage("❌ Approved, but no vaultSetupToken returned.\n" + pretty(data));
-          return;
-        }
-
-        resultMessage("✅ Setup approved\nCreating payment token…");
-
-        const res = await fetch("/api/paypal/create-payment-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ vaultSetupToken: data.vaultSetupToken })
-        });
-
-        const out = await res.json().catch(() => ({}));
-        log("create-payment-token", res.status, out);
-
-        if (!res.ok || !out.id) {
-          resultMessage("❌ create-payment-token failed\nHTTP " + res.status + "\n" + pretty(out));
-          return;
-        }
-
-        try { localStorage.setItem("paypal_payment_token_id", out.id); } catch(e) {}
-        resultMessage("✅ Saved (PaymentTokenID):\n" + out.id);
-      },
-
-      onError: (err) => {
-        log("PayPal onError", err);
-
-        // ВАЖНО: НЕ показываем alert — он скрывает детали.
-        // Покажем всё в модалке.
-        const msg = (err && (err.message || err.toString())) ? (err.message || err.toString()) : "Unknown error";
-        resultMessage("❌ PayPal SDK error:\n" + msg + "\n\nRaw:\n" + pretty(err));
-      }
-    }).render("#paypal-button-container");
-  })();
+}).render('#paypal-button-container');
 </script>
+
+</body>
+</html>
